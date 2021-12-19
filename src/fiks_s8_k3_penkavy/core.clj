@@ -13,6 +13,9 @@
   [ch]
   (= \return ch))
 
+(defn is-newline? [ch]
+  (= \newline ch))
+
 (defn process-pure-input [pure-input])
 
 (defn number-builder [char-sequence]
@@ -39,11 +42,18 @@
     (loop [need-chars need-chars
            [firstch & remaining-input] input
            byte-ret []]
-      (if (zero? need-chars)
-        [byte-length byte-ret (rest remaining-input)]
-        (recur (dec need-chars)
-               remaining-input
-               (conj byte-ret firstch))))))
+      (cond (zero? need-chars)
+            [byte-length byte-ret (rest remaining-input)]
+
+            (is-newline? firstch)
+            (recur need-chars
+                   remaining-input
+                   byte-ret)
+
+            :else
+            (recur (dec need-chars)
+                   remaining-input
+                   (conj byte-ret firstch))))))
 
 (defn read-and-process-input []
   (let [pure-input (slurp "sample.txt" :encoding "ISO-8859-1")
