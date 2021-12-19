@@ -4,6 +4,6 @@
 4 x
 5 de
 3 420
-8 fgh
-15 ijkl
-7 mn
+8 fg
+15 hijk
+7 lm

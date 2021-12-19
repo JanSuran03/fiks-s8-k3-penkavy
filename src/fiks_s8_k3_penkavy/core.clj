@@ -51,10 +51,27 @@
         process-input (fn [input]
                         (let [[incoming-lines rest-input] (number-builder input)
                               [dna-diff-tolerance rest-input] (number-builder rest-input)]
-                          (loop [remaining-inputs incoming-lines
-                                 ret []]
-                            (byte-builder (rest rest-input)))))]
-    (process-input pure-input)))
+                          (loop [num-remaining-inputs incoming-lines
+                                 ret []
+                                 remaining-input rest-input]
+                            (if (pos? num-remaining-inputs)
+                              (let [[byte-length byte input-rest] (byte-builder remaining-input)]
+                                (recur (dec num-remaining-inputs)
+                                       (conj ret {:byte-length byte-length
+                                                  :byte        byte})
+                                       input-rest))
+                              [{:dna-diff-tolerance dna-diff-tolerance
+                                :input              ret}
+                               remaining-input]))))]
+    (loop [remaining-inputs num-inputs
+           ret []
+           remaining-input pure-input]
+      (if (zero? remaining-inputs)
+        ret
+        (let [[input-ret remaining-input] (process-input remaining-input)]
+          (recur (dec remaining-inputs)
+                 (conj ret input-ret)
+                 remaining-input))))))
 
 (defn -main [& _args]
   (read-and-process-input))
