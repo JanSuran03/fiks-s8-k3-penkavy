@@ -1,87 +1,78 @@
 (ns fiks-s8-k3-penkavy.core
-  (:require [clojure.string :as str]))
+  (:import (java.io ByteArrayOutputStream)))
 
-(def ascii-num-diff (- (int \0) 0))
+(def byte->number (->> (range 10) (map (fn [b]
+                                         [(+ b 48) b]))
+                       (into {})))
 
-(def ascii->number (->> (range 10) (map #(vector (char (+ % ascii-num-diff))
-                                                 %))
-                        (into {})))
-(def number-chars (set (map first ascii->number)))
+(def zero 48)
+(def nine 57)
+(defn number-byte? [b]
+  (<= zero b nine))
 
-(defn is-return?
-  "In \"ISO-8859-1\" encoding, there ALWAYS is \return and \newline right after."
-  [ch]
-  (= \return ch))
+;; https://clojuredocs.org/clojure.core/slurp
+(defn slurp-bytes
+  "Reads a file as unsigned bytes."
+  [x]
+  (with-open [out (ByteArrayOutputStream.)]
+    (clojure.java.io/copy (clojure.java.io/input-stream x) out)
+    (->> (.toByteArray out)
+         (map #(Byte/toUnsignedInt ^Byte %)))))
 
 (defn is-newline? [ch]
   (= \newline ch))
 
-(defn process-pure-input [pure-input])
+(defn number-builder [byte-seq]
+  (loop [[firstb & more] byte-seq
+         int-digits (transient [])]
+    (if (number-byte? firstb)
+      (recur more
+             (conj! int-digits (get byte->number firstb)))
+      [(->> int-digits persistent!
+            (apply str)
+            read-string)
+       more])))
 
-(defn number-builder [char-sequence]
-  (loop [[^Character firstch & input] char-sequence
-         number ""]
-    (cond (contains? number-chars firstch)
-          (recur input
-                 (str number firstch))
+(defn finch-dna-builder [dna-length input]
+  (let [need-bytes (Math/ceil (/ dna-length 4))]
+    (loop [remaining-input input
+           DNA (transient [])
+           need-bytes need-bytes]
+      (if (zero? need-bytes)
+        [(persistent! DNA) (next remaining-input)]
+        (recur (next remaining-input)
+               (conj! DNA (first remaining-input))
+               (dec need-bytes))))))
 
-          (and (str/blank? number)
-               (Character/isWhitespace firstch))
-          (recur input
-                 number)
-
-          :else
-          [(read-string number)
-           input])))
-
-(defn byte-builder
-  "Returns: [byte-length byte input-rest]"
-  [input]
-  (let [[byte-length input] (number-builder input)
-        need-chars (Math/ceil (/ byte-length 4))]
-    (loop [need-chars need-chars
-           [firstch & remaining-input] input
-           byte-ret []]
-      (cond (zero? need-chars)
-            [byte-length byte-ret (rest remaining-input)]
-
-            (is-newline? firstch)
-            (recur need-chars
-                   remaining-input
-                   byte-ret)
-
-            :else
-            (recur (dec need-chars)
-                   remaining-input
-                   (conj byte-ret firstch))))))
-
-(defn read-and-process-input []
-  (let [pure-input (slurp "sample.txt" :encoding "ISO-8859-1")
-        [num-inputs pure-input] (number-builder pure-input)
-        process-input (fn [input]
-                        (let [[incoming-lines rest-input] (number-builder input)
-                              [dna-diff-tolerance rest-input] (number-builder rest-input)]
-                          (loop [num-remaining-inputs incoming-lines
-                                 ret []
-                                 remaining-input rest-input]
-                            (if (pos? num-remaining-inputs)
-                              (let [[byte-length byte input-rest] (byte-builder remaining-input)]
-                                (recur (dec num-remaining-inputs)
-                                       (conj ret {:byte-length byte-length
-                                                  :byte        byte})
-                                       input-rest))
-                              [{:dna-diff-tolerance dna-diff-tolerance
-                                :input              ret}
-                               remaining-input]))))]
+(defn process-input [input-as-bytes]
+  (let [[num-inputs pure-input] (number-builder input-as-bytes)
+        process-finches-sequence (fn [byte-seq]
+                                   (let [[incoming-finches rest-input] (number-builder byte-seq)
+                                         [dna-diff-tolerance rest-input] (number-builder rest-input)]
+                                     (loop [num-remaining-finches incoming-finches
+                                            remaining-input rest-input
+                                            ret (transient [])]
+                                       (if (pos? num-remaining-finches)
+                                         (let [[dna-length input-rest] (number-builder remaining-input)
+                                               [dna input-rest] (finch-dna-builder dna-length input-rest)]
+                                           (recur (dec num-remaining-finches)
+                                                  input-rest
+                                                  (conj! ret {:dna-length         dna-length
+                                                              :dna                dna
+                                                              :dna-diff-tolerance dna-diff-tolerance})))
+                                         [(persistent! ret) remaining-input]))))]
     (loop [remaining-inputs num-inputs
-           ret []
+           ret (transient [])
            remaining-input pure-input]
       (if (zero? remaining-inputs)
-        ret
-        (let [[input-ret remaining-input] (process-input remaining-input)]
+        (persistent! ret)
+        (let [[input-ret remaining-input] (process-finches-sequence remaining-input)]
           (recur (dec remaining-inputs)
-                 (conj ret input-ret)
+                 (conj! ret input-ret)
                  remaining-input))))))
+(defn read-and-process-input [filename]
+  (let [input-as-bytes (slurp-bytes filename)]
+    (process-input input-as-bytes)))
 
-(defn -main [& _args]
-  (read-and-process-input))
+(defn -main [filename]
+  (read-and-process-input filename))
