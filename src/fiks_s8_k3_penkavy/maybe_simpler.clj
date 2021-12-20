@@ -30,6 +30,32 @@
       (recur (cons 0 byte-seq)
              (inc filled)))))
 
+(defn decode-bytecode [byte-seq]
+  (loop [[firstb & more-bytes] byte-seq
+         ret (transient [])
+         prefix nil]
+    (cond (not firstb)
+          (persistent! ret)
+
+          (nil? prefix)
+          (if (#{-61 -62} firstb)
+            (recur more-bytes
+                   ret
+                   firstb)
+            (recur more-bytes
+                   (conj! ret firstb)
+                   nil))
+
+          (= prefix -61)
+          (recur more-bytes
+                 (conj! ret (+ 320 firstb))
+                 nil)
+
+          :else #_(= prefix -62)
+          (recur more-bytes
+                 (conj! ret (+ 256 firstb))
+                 nil))))
+
 (defn read-and-process-input []
   (let [input-as-bytes (slurp-bytes "example.txt")]
     (map (comp (partial apply str) fill-zeros dec->bin) input-as-bytes)))
