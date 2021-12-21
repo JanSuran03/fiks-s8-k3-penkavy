@@ -94,11 +94,10 @@
 (defn analyze-finches-seq [{:keys [dna-diff-tolerance
                                    finches] :as _finches-seq}]
   (let [analyzed-finches-seq (for [{:keys [dna-length dna]} finches]
-                               (let [nucleus-basis (->> dna (mapcat #(->> % dec->8-bit-binary-pairs
-                                                                          (map nucleus-basis)))
-                                                        (take dna-length)
-                                                        (apply str))]
-                                 nucleus-basis))]
+                               (->> dna (mapcat #(->> % dec->8-bit-binary-pairs
+                                                      (map nucleus-basis)))
+                                    (take dna-length)
+                                    (apply str)))]
     {:dna-diff-tolerance dna-diff-tolerance
      :finches            analyzed-finches-seq}))
 

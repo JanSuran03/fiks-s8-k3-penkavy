@@ -1,1 +1,0 @@
-(ns fiks-s8-k3-penkavy.maybe-simpler)
