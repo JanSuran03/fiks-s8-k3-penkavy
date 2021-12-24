@@ -1,7 +1,8 @@
 (ns fiks-s8-k3-penkavy.core
   (:require [clj-diff.core :as clj-diff]
             [clojure.string :as str]
-            [fiks-s8-k3-penkavy.str-comp :as str-comp])
+            [fiks-s8-k3-penkavy.str-comp :as str-comp]
+            [clojure.java.io :as io])
   (:import (java.io ByteArrayOutputStream)))
 
 (defn dec->bin [n]
@@ -131,6 +132,7 @@
     {:dna-diff-tolerance dna-diff-tolerance
      :finches            analyzed-finches-seq}))
 
+
 (defn find-same-species-finches [dna-diff-tolerance finches]
   (let [finches (vec finches)
         len (count finches)]
@@ -149,18 +151,17 @@
                    interesting-finches)
 
             :else
-            (let [diff (if (> (Math/abs (- (count (nth finches i))
-                                           (count (nth finches j))))
-                              dna-diff-tolerance)
-                         999999999
-                         (clj-diff/edit-distance (nth finches i) (nth finches j)))
-                  same-species (<= diff dna-diff-tolerance)]
+            (let [same-species? (or (> (Math/abs (- (count (nth finches i))
+                                                    (count (nth finches j))))
+                                       dna-diff-tolerance)
+                                    (str-comp/levenshtein (nth finches i) (nth finches j)
+                                                          dna-diff-tolerance))]
               (recur i
                      (inc j)
-                     (if same-species
+                     (if same-species?
                        (assoc! ret i ((fnil conj #{}) (get ret i) j))
                        ret)
-                     (if same-species
+                     (if same-species?
                        (-> interesting-finches (conj! i) (conj! j))
                        interesting-finches)))))))
 
@@ -168,6 +169,7 @@
   (let [[same-species-finches interesting-set] (find-same-species-finches dna-diff-tolerance finches)
         sorted-interesting-seq (vec (sort interesting-set))
         len (count sorted-interesting-seq)]
+    (println "done")
     (loop [i 0
            j 1
            k 2
@@ -213,3 +215,15 @@
                    (str/join "\n"))))
        (str/join "\n")
        (spit "output.txt")))
+
+(defn main* [filename]
+  (with-open [writer (io/writer "output.txt")]
+    (->> filename read-and-process-input
+         (take 4)
+         (map find-interesting-trinities)
+         (map (fn [interesting-trinities]
+                (->> interesting-trinities (map #(str/join " " %))
+                     (cons (count interesting-trinities))
+                     (str/join "\n"))))
+         (str/join "\n")
+         (.write writer))))

@@ -1,0 +1,48 @@
+String length: 1000, num string pairs: 10
+"Elapsed time: 699.6596 msecs"
+"Elapsed time: 916.7864 msecs"
+"Elapsed time: 613.166 msecs"
+"Elapsed time: 599.8601 msecs"
+"Elapsed time: 612.9682 msecs"
+"Elapsed time: 601.8712 msecs"
+"Elapsed time: 606.8363 msecs"
+"Elapsed time: 622.2305 msecs"
+"Elapsed time: 570.9546 msecs"
+"Elapsed time: 602.4428 msecs"
+
+String length: 1000, num string pairs: 10
+"Elapsed time: 523.3567 msecs"
+"Elapsed time: 554.7482 msecs"
+"Elapsed time: 512.309 msecs"
+"Elapsed time: 512.4295 msecs"
+"Elapsed time: 500.6336 msecs"
+"Elapsed time: 516.4908 msecs"
+"Elapsed time: 501.9888 msecs"
+"Elapsed time: 506.7657 msecs"
+"Elapsed time: 515.9277 msecs"
+"Elapsed time: 521.1769 msecs"
+
+String length: 1000, num string pairs: 10
+"Elapsed time: 383.4428 msecs"
+"Elapsed time: 319.5109 msecs"
+"Elapsed time: 290.3769 msecs"
+"Elapsed time: 289.2296 msecs"
+"Elapsed time: 294.159 msecs"
+"Elapsed time: 285.0074 msecs"
+"Elapsed time: 309.0029 msecs"
+"Elapsed time: 286.1589 msecs"
+"Elapsed time: 303.6376 msecs"
+"Elapsed time: 286.0867 msecs"
+
+String length: 1000, num string pairs: 10
+"Elapsed time: 376.9636 msecs"
+"Elapsed time: 335.1239 msecs"
+"Elapsed time: 287.8618 msecs"
+"Elapsed time: 308.3641 msecs"
+"Elapsed time: 297.0568 msecs"
+"Elapsed time: 316.5666 msecs"
+"Elapsed time: 296.5025 msecs"
+"Elapsed time: 302.3636 msecs"
+"Elapsed time: 298.1005 msecs"
+"Elapsed time: 297.1632 msecs"
+
