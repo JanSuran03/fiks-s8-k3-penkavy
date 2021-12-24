@@ -1,5 +1,8 @@
 (ns fiks-s8-k3-penkavy.core
-  (:import (java.io ByteArrayOutputStream)))
+  (:require [clj-diff.core :as clj-diff]
+            [clojure.string :as str])
+  (:import (java.io ByteArrayOutputStream)
+           (clojure.lang ITransientMap)))
 
 (defn dec->bin [n]
   (loop [ret ()
@@ -21,6 +24,26 @@
       byte-seq
       (recur (cons 0 byte-seq)
              (inc filled)))))
+
+(defn ret-indices-2-away [seq]
+  (let [len (count seq)]
+    (loop [i 0
+           j 0
+           ret (transient [])]
+      (cond (>= i (dec len))
+            (persistent! ret)
+
+            (>= j len)
+            (recur (inc i)
+                   (inc (inc i))
+                   ret)
+
+            :else
+            (recur i
+                   (inc j)
+                   (if (>= (- j i) 2)
+                     (conj! ret [i j])
+                     ret))))))
 
 (defn dec->8-bit-binary-pairs [n]
   (->> n dec->bin
@@ -93,13 +116,77 @@
 
 (defn analyze-finches-seq [{:keys [dna-diff-tolerance
                                    finches] :as _finches-seq}]
-  (let [analyzed-finches-seq (for [{:keys [dna-length dna]} finches]
-                               (->> dna (mapcat #(->> % dec->8-bit-binary-pairs
-                                                      (map nucleus-basis)))
-                                    (take dna-length)
-                                    (apply str)))]
+  (let [analyzed-finches-seq (mapv (fn [{:keys [dna-length dna]}]
+                                     (->> dna (mapcat #(->> % dec->8-bit-binary-pairs
+                                                            (map nucleus-basis)))
+                                          (take dna-length)
+                                          (apply str)))
+                                   finches)]
     {:dna-diff-tolerance dna-diff-tolerance
      :finches            analyzed-finches-seq}))
+
+(defn find-same-species-finches [dna-diff-tolerance finches]
+  (let [finches (vec finches)
+        len (count finches)]
+    (loop [i 0
+           j 1
+           ret (transient {})
+           interesting-finches (transient #{})]
+      (cond (= i (dec len))
+            [(persistent! ret)
+             (persistent! interesting-finches)]
+
+            (>= j len)
+            (recur (inc i)
+                   (+ i 2)
+                   ret
+                   interesting-finches)
+
+            :else
+            (let [diff (clj-diff/edit-distance (nth finches i) (nth finches j))
+                  same-species (<= diff dna-diff-tolerance)]
+              (recur i
+                     (inc j)
+                     (if same-species
+                       (assoc! ret i ((fnil conj #{}) (get ret i) j))
+                       ret)
+                     (if same-species
+                       (-> interesting-finches (conj! i) (conj! j))
+                       interesting-finches)))))))
+
+(defn find-interesting-trinities [{:keys [dna-diff-tolerance finches]}]
+  (let [[same-species-finches interesting-set] (find-same-species-finches dna-diff-tolerance finches)
+        sorted-interesting-seq (vec (sort interesting-set))
+        len (count sorted-interesting-seq)]
+    (loop [i 0
+           j 1
+           k 2
+           ret []]
+      (cond (>= i (- len 2))
+            ret
+
+            (>= j (dec len))
+            (recur (inc i)
+                   (+ i 2)
+                   (+ i 3)
+                   ret)
+
+            (>= k len)
+            (recur i
+                   (inc j)
+                   (+ j 2)
+                   ret)
+
+            :else
+            (let [i-j-ss? (contains? (get same-species-finches i) j)
+                  j-k-ss? (contains? (get same-species-finches j) k)
+                  i-k-ss? (contains? (get same-species-finches i) k)]
+              (recur i
+                     j
+                     (inc k)
+                     (if (and i-j-ss? j-k-ss? (not i-k-ss?))
+                       (conj ret [i j k])
+                       ret)))))))
 
 (defn read-and-process-input [filename]
   (let [input-as-bytes (slurp-bytes filename)
@@ -107,4 +194,12 @@
     (map analyze-finches-seq processed-input)))
 
 (defn -main [filename]
-  (read-and-process-input filename))
+  (->> filename read-and-process-input
+       (take 3)
+       (map find-interesting-trinities)
+       #_(map (fn [interesting-trinities]
+              (->> interesting-trinities (map #(str/join " " %))
+                   (cons (count interesting-trinities))
+                   (str/join "\n"))))
+       #_(str/join "\n")
+       #_(spit "output.txt")))
