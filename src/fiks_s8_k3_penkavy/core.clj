@@ -1,8 +1,8 @@
 (ns fiks-s8-k3-penkavy.core
   (:require [clj-diff.core :as clj-diff]
-            [clojure.string :as str])
-  (:import (java.io ByteArrayOutputStream)
-           (clojure.lang ITransientMap)))
+            [clojure.string :as str]
+            [fiks-s8-k3-penkavy.str-comp :as str-comp])
+  (:import (java.io ByteArrayOutputStream)))
 
 (defn dec->bin [n]
   (loop [ret ()
@@ -11,6 +11,12 @@
       (recur (conj ret (rem n 2))
              (quot n 2))
       ret)))
+
+#_(dotimes [i 5] (let [s (apply str (repeat 60 "abcdabcabacabbbabacba"))
+                       s-rev (apply str (repeat 60 "bcbacbbababacbbabcadc"))]
+                   (println (time (clj-diff/edit-distance s s-rev)))
+                   (println (time (dec (count (diff s s-rev)))))
+                   (println (time (metrics/levenshtein s s-rev)))))
 
 (def nucleus-basis {'(0 0) "A"
                     '(0 1) "C"
@@ -143,7 +149,11 @@
                    interesting-finches)
 
             :else
-            (let [diff (clj-diff/edit-distance (nth finches i) (nth finches j))
+            (let [diff (if (> (Math/abs (- (count (nth finches i))
+                                           (count (nth finches j))))
+                              dna-diff-tolerance)
+                         999999999
+                         (clj-diff/edit-distance (nth finches i) (nth finches j)))
                   same-species (<= diff dna-diff-tolerance)]
               (recur i
                      (inc j)
@@ -161,9 +171,9 @@
     (loop [i 0
            j 1
            k 2
-           ret []]
+           ret (transient [])]
       (cond (>= i (- len 2))
-            ret
+            (persistent! ret)
 
             (>= j (dec len))
             (recur (inc i)
@@ -178,14 +188,15 @@
                    ret)
 
             :else
-            (let [i-j-ss? (contains? (get same-species-finches i) j)
-                  j-k-ss? (contains? (get same-species-finches j) k)
-                  i-k-ss? (contains? (get same-species-finches i) k)]
+            (let [[nth-i nth-j nth-k] (map #(get sorted-interesting-seq %) [i j k])
+                  i-j-ss? (contains? (get same-species-finches nth-i) nth-j)
+                  j-k-ss? (contains? (get same-species-finches nth-j) nth-k)
+                  i-k-ss? (contains? (get same-species-finches nth-i) nth-k)]
               (recur i
                      j
                      (inc k)
                      (if (and i-j-ss? j-k-ss? (not i-k-ss?))
-                       (conj ret [i j k])
+                       (conj! ret [i j k])
                        ret)))))))
 
 (defn read-and-process-input [filename]
@@ -195,11 +206,10 @@
 
 (defn -main [filename]
   (->> filename read-and-process-input
-       (take 3)
        (map find-interesting-trinities)
-       #_(map (fn [interesting-trinities]
+       (map (fn [interesting-trinities]
               (->> interesting-trinities (map #(str/join " " %))
                    (cons (count interesting-trinities))
                    (str/join "\n"))))
-       #_(str/join "\n")
-       #_(spit "output.txt")))
+       (str/join "\n")
+       (spit "output.txt")))
