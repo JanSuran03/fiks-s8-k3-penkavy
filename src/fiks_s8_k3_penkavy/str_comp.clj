@@ -24,7 +24,7 @@
 (defn init-2d-vector [rows cols]
   (vec (repeat rows (vec (repeat cols 0)))))
 
-(defn levenshtein [a b]
+(defn levenshtein [^String a ^String b]
   (let [inc-cnt-a (inc (count a))
         inc-cnt-b (inc (count b))
         vec-2d (init-2d-vector inc-cnt-a inc-cnt-b)
@@ -40,4 +40,28 @@
                            (recur (assoc-in v [0 i] i)
                                   (inc i))
                            v))]
-    with-first-col))
+    (loop [v with-first-col
+           i 1
+           j 1]
+      (cond (= i inc-cnt-a)
+            (get-in v [(count a) (count b)])
+
+            (= j inc-cnt-b)
+            (recur v
+                   (inc i)
+                   1)
+
+            :else
+            (let [dec-i (dec i)
+                  dec-j (dec j)
+                  a-i-dec (.charAt a dec-i)
+                  b-j-dec (.charAt b dec-j)]
+              (if (= a-i-dec b-j-dec)
+                (recur (assoc-in v [i j] (get-in v [dec-i dec-j]))
+                       i
+                       (inc j))
+                (let [insertion ^Integer (inc (get-in v [i dec-j]))
+                      deletion ^Integer (inc (get-in v [dec-i j]))
+                      replacement ^Integer (inc (get-in v [dec-i dec-j]))]
+                  (recur (assoc-in v [i j] (Math/min (Math/min insertion deletion) replacement))
+                         i (inc j)))))))))
