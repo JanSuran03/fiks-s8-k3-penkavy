@@ -1,5 +1,4 @@
-(ns fiks-s8-k3-penkavy.str-diff
-  (:import (penkavy LevenshteinDistanceRecursive)))
+(ns fiks-s8-k3-penkavy.str-diff)
 
 (defn init-2d-vector [rows cols]
   (vec (repeat rows (vec (repeat cols 0)))))

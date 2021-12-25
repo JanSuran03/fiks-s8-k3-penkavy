@@ -3,7 +3,7 @@
             [fiks-s8-k3-penkavy.str-diff :as str-diff]
             [clojure.java.io :as io])
   (:import (java.io ByteArrayOutputStream)
-           (finches Levenshtein)))
+           (levenshtein Levenshtein)))
 
 (defn ^String newline-join [strs]
   (str/join "\n" strs))
@@ -142,8 +142,9 @@
             (let [same-species? (and (<= (Math/abs (- (count (nth finches i))
                                                       (count (nth finches j))))
                                          dna-diff-tolerance)
-                                     (str-diff/levenshtein (nth finches i) (nth finches j)
-                                                           dna-diff-tolerance))]
+                                     (Levenshtein/compute_levenshtein (nth finches i)
+                                                                      (nth finches j)
+                                                                      dna-diff-tolerance))]
               (recur i
                      (inc j)
                      (if same-species?
@@ -158,6 +159,7 @@
   (let [[same-species-finches interesting-set] (find-same-species-finches dna-diff-tolerance finches)
         sorted-interesting-seq (vec (sort interesting-set))
         len (count sorted-interesting-seq)]
+    (println "done")
     (loop [i 0
            j 1
            ret (transient [])]
@@ -190,7 +192,7 @@
 
 (defn -main [filename]
   (->> filename read-and-process-input
-       (take 6)
+       (take 8)
        (map #(find-interesting-trinities %))
        (map (fn [interesting-trinities]
               (->> interesting-trinities (map #(str/join " " %))
