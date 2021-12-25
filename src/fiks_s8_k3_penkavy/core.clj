@@ -30,32 +30,14 @@
        newline-join))
 
 (defn fill-zeros [byte-seq]
-  (loop [byte-seq byte-seq
-         filled (rem (count byte-seq) 8)]
-    (if (#{0 8} filled)
-      byte-seq
-      (recur (cons 0 byte-seq)
-             (inc filled)))))
-
-(defn ret-indices-2-away [seq]
-  (let [len (count seq)]
-    (loop [i 0
-           j 0
-           ret (transient [])]
-      (cond (>= i (dec len))
-            (persistent! ret)
-
-            (>= j len)
-            (recur (inc i)
-                   (inc (inc i))
-                   ret)
-
-            :else
-            (recur i
-                   (inc j)
-                   (if (>= (- j i) 2)
-                     (conj! ret [i j])
-                     ret))))))
+  (if (= (count byte-seq) 8)
+    byte-seq
+    (loop [byte-seq byte-seq
+           filled (rem (count byte-seq) 8)]
+      (if (= 8 filled)
+        byte-seq
+        (recur (cons 0 byte-seq)
+               (inc filled))))))
 
 (defn dec->8-bit-binary-pairs [n]
   (->> n dec->bin
@@ -203,7 +185,7 @@
 
 (defn read-and-process-input [filename]
   (let [input-as-bytes (slurp-bytes filename)
-        processed-input (process-input input-as-bytes)]
+        processed-input (lazy-seq (process-input input-as-bytes))]
     (map analyze-finches-seq processed-input)))
 
 (defn -main [filename]
