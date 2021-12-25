@@ -5,6 +5,9 @@
             [clojure.java.io :as io])
   (:import (java.io ByteArrayOutputStream)))
 
+(defn ^String newline-join [strs]
+  (str/join "\n" strs))
+
 (defn dec->bin [n]
   (loop [ret ()
          n n]
@@ -17,6 +20,14 @@
                     '(0 1) "C"
                     '(1 0) "G"
                     '(1 1) "T"})
+
+(defn dna->similar-to-bytecode-format [finches]
+  (->> (for [{:keys [dna-diff-tolerance finches]} finches]
+         (->> finches (map (fn [s]
+                             (str (count s) " " s)))
+              newline-join
+              (apply str (count finches) " " dna-diff-tolerance "\n")))
+       newline-join))
 
 (defn fill-zeros [byte-seq]
   (loop [byte-seq byte-seq
@@ -133,10 +144,10 @@
         len (count finches)]
     (loop [i 0
            j 1
-           ret (transient {})
+           ret {}
            interesting-finches (transient #{})]
       (cond (= i (dec len))
-            [(persistent! ret)
+            [ret
              (persistent! interesting-finches)]
 
             (>= j len)
@@ -146,15 +157,16 @@
                    interesting-finches)
 
             :else
-            (let [same-species? (or (<= (Math/abs (- (count (nth finches i))
-                                                     (count (nth finches j))))
-                                        dna-diff-tolerance)
-                                    (str-diff/levenshtein (nth finches i) (nth finches j)
-                                                          dna-diff-tolerance))]
+            (let [same-species? (and (<= (Math/abs (- (count (nth finches i))
+                                                      (count (nth finches j))))
+                                         dna-diff-tolerance)
+                                     (str-diff/levenshtein (nth finches i) (nth finches j)
+                                                           dna-diff-tolerance))]
               (recur i
                      (inc j)
                      (if same-species?
-                       (assoc! ret i ((fnil conj #{}) (get ret i) j))
+                       (assoc ret i ((fnil conj #{}) (get ret i) j)
+                                  j ((fnil conj #{}) (get ret j) i))
                        ret)
                      (if same-species?
                        (-> interesting-finches (conj! i) (conj! j))
@@ -166,35 +178,28 @@
         len (count sorted-interesting-seq)]
     (loop [i 0
            j 1
-           k 2
            ret (transient [])]
-      (cond (>= i (- len 2))
+      (cond (>= i (dec len))
             (persistent! ret)
 
-            (>= j (dec len))
+            (>= j len)
             (recur (inc i)
                    (+ i 2)
-                   (+ i 3)
-                   ret)
-
-            (>= k len)
-            (recur i
-                   (inc j)
-                   (+ j 2)
                    ret)
 
             :else
-            (let [[nth-i nth-j nth-k] (map #(nth sorted-interesting-seq %) [i j k])
-                  ss-nth-i (get same-species-finches nth-i)
-                  i-j-ss? (contains? ss-nth-i nth-j)
-                  j-k-ss? (contains? (get same-species-finches nth-j) nth-k)
-                  i-k-ss? (contains? ss-nth-i nth-k)]
-              (recur i
-                     j
-                     (inc k)
-                     (if (and i-j-ss? j-k-ss? (not i-k-ss?))
-                       (conj! ret [nth-i nth-j nth-k])
-                       ret)))))))
+            (let [[nth-i nth-j] (map #(nth sorted-interesting-seq %) [i j])
+                  ss-nth-i (get same-species-finches nth-i)]
+              (if (contains? ss-nth-i nth-j)
+                (recur i (inc j) ret)
+                (let [interesting-trinities (for [finch-idx sorted-interesting-seq
+                                                  :when (and (not (contains? #{nth-i nth-j} finch-idx))
+                                                             (contains? ss-nth-i finch-idx)
+                                                             (contains? (get same-species-finches nth-j) finch-idx))]
+                                              [nth-i finch-idx nth-j])]
+                  (recur i
+                         (inc j)
+                         (reduce conj! ret interesting-trinities)))))))))
 
 (defn read-and-process-input [filename]
   (let [input-as-bytes (slurp-bytes filename)
@@ -203,14 +208,14 @@
 
 (defn -main [filename]
   (->> filename read-and-process-input
-       (take 3)
-       #_(map #(find-interesting-trinities %))
-       #_(map (fn [interesting-trinities]
-                #_(->> interesting-trinities (map #(str/join " " %))
-                       #_(cons (count interesting-trinities))
-                       #_(str/join "\n"))))
-       #_(str/join "\n")
-       #_(spit "output.txt")))
+       (take 5)
+       (map #(find-interesting-trinities %))
+       (map (fn [interesting-trinities]
+              (->> interesting-trinities (map #(str/join " " %))
+                   (cons (count interesting-trinities))
+                   newline-join)))
+       newline-join
+       (spit "output.txt")))
 
 (defn main* [filename]
   (with-open [writer (io/writer "output.txt")]
@@ -220,6 +225,6 @@
          (map (fn [interesting-trinities]
                 (->> interesting-trinities (map #(str/join " " %))
                      (cons (count interesting-trinities))
-                     (str/join "\n"))))
-         (str/join "\n")
+                     newline-join)))
+         newline-join
          (.write writer))))
