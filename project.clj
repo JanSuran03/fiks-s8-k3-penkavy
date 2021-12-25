@@ -7,4 +7,6 @@
                  [clj-diff "1.0.0-SNAPSHOT"]
                  [clj-fuzzy "0.4.1"]]
   :repl-options {:init-ns fiks-s8-k3-penkavy.core}
+  :java-fork "true"
+  :java-debug "true"
   :java-source-paths ["java/src"])

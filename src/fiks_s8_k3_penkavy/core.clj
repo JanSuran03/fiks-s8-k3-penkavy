@@ -1,9 +1,9 @@
 (ns fiks-s8-k3-penkavy.core
-  (:require [clj-diff.core :as clj-diff]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
             [fiks-s8-k3-penkavy.str-diff :as str-diff]
             [clojure.java.io :as io])
-  (:import (java.io ByteArrayOutputStream)))
+  (:import (java.io ByteArrayOutputStream)
+           (finches Levenshtein)))
 
 (defn ^String newline-join [strs]
   (str/join "\n" strs))
@@ -190,7 +190,7 @@
 
 (defn -main [filename]
   (->> filename read-and-process-input
-       (take 5)
+       (take 6)
        (map #(find-interesting-trinities %))
        (map (fn [interesting-trinities]
               (->> interesting-trinities (map #(str/join " " %))
