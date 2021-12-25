@@ -6,4 +6,5 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [clj-diff "1.0.0-SNAPSHOT"]
                  [clj-fuzzy "0.4.1"]]
-  :repl-options {:init-ns fiks-s8-k3-penkavy.core})
+  :repl-options {:init-ns fiks-s8-k3-penkavy.core}
+  :java-source-paths ["java/src"])
