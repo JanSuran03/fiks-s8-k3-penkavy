@@ -192,7 +192,7 @@
 
 (defn -main [filename]
   (->> filename read-and-process-input
-       (take 6)
+       (take 10)
        (map #(find-interesting-trinities %))
        (map (fn [interesting-trinities]
               (->> interesting-trinities (map #(str/join " " %))
