@@ -1,6 +1,5 @@
 (ns fiks-s8-k3-penkavy.core
   (:require [clojure.string :as str]
-            [fiks-s8-k3-penkavy.str-diff :as str-diff]
             [clojure.java.io :as io])
   (:import (java.io ByteArrayOutputStream)
            (levenshtein Levenshtein)))
@@ -54,7 +53,7 @@
   "Reads a file as unsigned bytes."
   [x]
   (with-open [out (ByteArrayOutputStream.)]
-    (clojure.java.io/copy (clojure.java.io/input-stream x) out)
+    (io/copy (clojure.java.io/input-stream x) out)
     (->> (.toByteArray out)
          (map #(Byte/toUnsignedInt ^Byte %)))))
 
@@ -192,23 +191,12 @@
 
 (defn -main [filename]
   (->> filename read-and-process-input
-       (take 10)
-       (map #(find-interesting-trinities %))
-       (map (fn [interesting-trinities]
-              (->> interesting-trinities (map #(str/join " " %))
-                   (cons (count interesting-trinities))
-                   newline-join)))
-       newline-join
-       (spit "output.txt")))
-
-(defn main* [filename]
-  (with-open [writer (io/writer "output.txt")]
-    (->> filename read-and-process-input
-         (take 4)
-         (map find-interesting-trinities)
-         (map (fn [interesting-trinities]
+       (drop 7)
+       first
+       #_(map #(find-interesting-trinities %))
+       #_(map (fn [interesting-trinities]
                 (->> interesting-trinities (map #(str/join " " %))
                      (cons (count interesting-trinities))
                      newline-join)))
-         newline-join
-         (.write writer))))
+       #_newline-join
+       #_(spit "output.txt")))
